@@ -1,51 +1,133 @@
-Function Exit-Json($obj) {
-	<#
-    .SYNOPSIS
-    Helper function to convert a PowerShell object to JSON and output it, exiting
-    the script
-    .EXAMPLE
-    Exit-Json $result
+function Exit-Json
+{
+<#
+	.SYNOPSIS
+		Helper function to convert a PowerShell object to JSON and output it, exiting
+		the script
+	
+	.DESCRIPTION
+		A detailed description of the Exit-Json function.
+	
+	.PARAMETER obj
+		This is the object that you are object that you are passing. Typically this is the $results hash table. 
+	
+	.EXAMPLE
+		Exit-Json $result
+	
+	.NOTES
+		Additional information about the function.
 #>
-
+	
+	param
+	(
+		$obj
+	)
+	
 	# If the provided $obj is undefined, define one to be nice
-	If (-not $obj.GetType) {
+	If (-not $obj.GetType)
+	{
 		$obj = @{ }
 	}
-
-	if (-not $obj.ContainsKey('changed')) {
+	
+	if (-not $obj.ContainsKey('changed'))
+	{
 		Set-Attr -obj $obj -name "changed" -value $false
 	}
-
+	
 	Write-Output $obj | ConvertTo-Json -Compress -Depth 99
 	Exit
 }
 
-Function Set-Attr($obj, $name, $value) {
+function Set-Attr
+{
+<#
+	.SYNOPSIS
+		Sets the attribute of a property
+	
+	.DESCRIPTION
+		adds a value to the property of an object.
+	
+	.PARAMETER obj
+		A description of the obj parameter.
+	
+	.PARAMETER name
+		A description of the name parameter.
+	
+	.PARAMETER value
+		A description of the value parameter.
+	
+	.EXAMPLE
+				PS C:\> Set-Attr
+	
+	.NOTES
+		Additional information about the function.
+#>
+	
+	param
+	(
+		$obj,
+		$name,
+		$value
+	)
+	
 	# If the provided $obj is undefined, define one to be nice
-	If (-not $obj.GetType) {
+	If (-not $obj.GetType)
+	{
 		$obj = @{ }
 	}
 	
-	Try {
+	Try
+	{
 		$obj.$name = $value
 	}
-	Catch {
+	Catch
+	{
 		$obj | Add-Member -Force -MemberType NoteProperty -Name $name -Value $value
 	}
 }
 
 
-Function Fail-Json($obj, $message = $null) {
-	if ($obj -is [hashtable] -or $obj -is [psobject]) {
+function Fail-Json
+{
+<#
+	.SYNOPSIS
+		A brief description of the Fail-Json function.
+	
+	.DESCRIPTION
+		A detailed description of the Fail-Json function.
+	
+	.PARAMETER obj
+		This is the object you are passing in. Typically this is $results hsa the changed =$true/$false hashtable
+	
+	.PARAMETER message
+		pass in a failed message that ansible will display. 
+	
+	.EXAMPLE
+				PS C:\> Fail-Json -obj $results -msg "This task failed"
+	
+	.NOTES
+		Additional information about the function.
+#>
+	
+	param
+	(
+		$obj,
+		$message = $null
+	)
+	
+	if ($obj -is [hashtable] -or $obj -is [psobject])
+	{
 		# Nothing to do
 	}
-	elseif ($obj -is [string] -and $message -eq $null) {
+	elseif ($obj -is [string] -and $message -eq $null)
+	{
 		# If we weren't given 2 args, and the only arg was a string,
 		# create a new Hashtable and use the arg as the failure message
 		$message = $obj
 		$obj = @{ }
 	}
-	else {
+	else
+	{
 		# If the first argument is undefined or a different type,
 		# make it a Hashtable
 		$obj = @{ }
@@ -55,7 +137,8 @@ Function Fail-Json($obj, $message = $null) {
 	Set-Attr $obj "msg" $message
 	Set-Attr $obj "failed" $true
 	
-	if (-not $obj.ContainsKey('changed')) {
+	if (-not $obj.ContainsKey('changed'))
+	{
 		Set-Attr $obj "changed" $false
 	}
 	
@@ -63,34 +146,102 @@ Function Fail-Json($obj, $message = $null) {
 	Exit 1
 }
 
-Function Get-AnsibleParam($obj, $name, $default = $null, $resultobj = @{ }, $failifempty = $false, $emptyattributefailmessage, $ValidateSet, $ValidateSetErrorMessage, $type = $null, $aliases = @()) {
+function Get-AnsibleParam
+{
+<#
+	.SYNOPSIS
+		This is equivalent to the param block of a PowerShell cmdlet.
+	
+	.DESCRIPTION
+		This is how you will pass in the parameters from Yaml file to the powershell script. 
+	
+	.PARAMETER obj
+		A description of the obj parameter.
+	
+	.PARAMETER name
+		name of the parameter in ansible yaml file
+	
+	.PARAMETER default
+		the default  if none given 
+	
+	.PARAMETER resultobj
+		A description of the resultobj parameter.
+	
+	.PARAMETER failifempty
+		equivalent of mandatory 
+	
+	.PARAMETER emptyattributefailmessage
+		Custom messages for empty attributes 
+	
+	.PARAMETER ValidateSet
+		equivalent to PowerShell validateSet 
+	
+	.PARAMETER ValidateSetErrorMessage
+		custom error for validate set 
+	
+	.PARAMETER type
+		the type for the parameter.
+		some examples are [string][int]
+	
+	.PARAMETER aliases
+		The aliases for this parameter 
+	
+	.EXAMPLE
+				PS C:\> Get-AnsibleParam
+	
+	.NOTES
+		Additional information about the function.
+#>
+	
+	param
+	(
+		$obj,
+		$name,
+		$default = $null,
+		$resultobj = @{ },
+		$failifempty = $false,
+		$emptyattributefailmessage,
+		$ValidateSet,
+		$ValidateSetErrorMessage,
+		$type = $null,
+		$aliases = @()
+	)
+	
 	# Check if the provided Member $name or aliases exist in $obj and return it or the default.
-	try {
+	try
+	{
 		
 		$found = $null
 		# First try to find preferred parameter $name
 		$aliases = @($name) + $aliases
 		
 		# Iterate over aliases to find acceptable Member $name
-		foreach ($alias in $aliases) {
-			if ($obj.ContainsKey($alias)) {
+		foreach ($alias in $aliases)
+		{
+			if ($obj.ContainsKey($alias))
+			{
 				$found = $alias
 				break
 			}
 		}
 		
-		if ($found -eq $null) {
+		if ($found -eq $null)
+		{
 			throw
 		}
 		$name = $found
 		
-		if ($ValidateSet) {
+		if ($ValidateSet)
+		{
 			
-			if ($ValidateSet -contains ($obj.$name)) {
+			if ($ValidateSet -contains ($obj.$name))
+			{
 				$value = $obj.$name
 			}
-			else {
-				if ($ValidateSetErrorMessage -eq $null) {
+			else
+			{
+				if ($ValidateSetErrorMessage -eq $null)
+				{
 					#Auto-generated error should be sufficient in most use cases
 					$ValidateSetErrorMessage = "Get-AnsibleParam: Argument $name needs to be one of $($ValidateSet -join ",") but was $($obj.$name)."
 				}
@@ -98,17 +249,22 @@ Function Get-AnsibleParam($obj, $name, $default = $null, $resultobj = @{ }, $fai
 			}
 			
 		}
-		else {
+		else
+		{
 			$value = $obj.$name
 		}
 		
 	}
-	catch {
-		if ($failifempty -eq $false) {
+	catch
+	{
+		if ($failifempty -eq $false)
+		{
 			$value = $default
 		}
-		else {
-			if (!$emptyattributefailmessage) {
+		else
+		{
+			if (!$emptyattributefailmessage)
+			{
 				$emptyattributefailmessage = "Get-AnsibleParam: Missing required argument: $name"
 			}
 			Fail-Json -obj $resultobj -message $emptyattributefailmessage
@@ -120,53 +276,68 @@ Function Get-AnsibleParam($obj, $name, $default = $null, $resultobj = @{ }, $fai
 	# Please leave $null-values intact, modules need to know if a parameter was specified
 	# When $value is already an array, we cannot rely on the null check, as an empty list
 	# is seen as null in the check below
-	if ($value -ne $null -or $value -is [array]) {
-		if ($type -eq "path") {
+	if ($value -ne $null -or $value -is [array])
+	{
+		if ($type -eq "path")
+		{
 			# Expand environment variables on path-type
 			$value = Expand-Environment($value)
 			# Test if a valid path is provided
-			if (-not (Test-Path -IsValid $value)) {
+			if (-not (Test-Path -IsValid $value))
+			{
 				$path_invalid = $true
 				# could still be a valid-shaped path with a nonexistent drive letter
-				if ($value -match "^\w:") {
+				if ($value -match "^\w:")
+				{
 					# rewrite path with a valid drive letter and recheck the shape- this might still fail, eg, a nonexistent non-filesystem PS path
-					if (Test-Path -IsValid $(@(Get-PSDrive -PSProvider Filesystem)[0].Name + $value.Substring(1))) {
+					if (Test-Path -IsValid $(@(Get-PSDrive -PSProvider Filesystem)[0].Name + $value.Substring(1)))
+					{
 						$path_invalid = $false
 					}
 				}
-				if ($path_invalid) {
+				if ($path_invalid)
+				{
 					Fail-Json -obj $resultobj -message "Get-AnsibleParam: Parameter '$name' has an invalid path '$value' specified."
 				}
 			}
 		}
-		elseif ($type -eq "str") {
+		elseif ($type -eq "str")
+		{
 			# Convert str types to real Powershell strings
 			$value = $value.ToString()
 		}
-		elseif ($type -eq "bool") {
+		elseif ($type -eq "bool")
+		{
 			# Convert boolean types to real Powershell booleans
 			$value = $value | ConvertTo-Bool
 		}
-		elseif ($type -eq "int") {
+		elseif ($type -eq "int")
+		{
 			# Convert int types to real Powershell integers
 			$value = $value -as [int]
 		}
-		elseif ($type -eq "float") {
+		elseif ($type -eq "float")
+		{
 			# Convert float types to real Powershell floats
 			$value = $value -as [float]
 		}
-		elseif ($type -eq "list") {
-			if ($value -is [array]) {
+		elseif ($type -eq "list")
+		{
+			if ($value -is [array])
+			{
 				# Nothing to do
 			}
-			elseif ($value -is [string]) {
+			elseif ($value -is [string])
+			{
 				# Convert string type to real Powershell array
 				$value = $value.Split(",").Trim()
 			}
-			elseif ($value -is [int]) {
+			elseif ($value -is [int])
+			{
 				$value = @($value)
 			}
-			else {
+			else
+			{
 				Fail-Json -obj $resultobj -message "Get-AnsibleParam: Parameter '$name' is not a YAML list."
 			}
 			# , is not a typo, forces it to return as a list when it is empty or only has 1 entry
@@ -225,3 +396,5 @@ Function Parse-Args($arguments, $supports_check_mode = $false) {
 If (!(Get-Alias -Name "Get-attr" -ErrorAction SilentlyContinue)) {
 	New-Alias -Name Get-attr -Value Get-AnsibleParam
 }
+
+Export-ModuleMember -Function * -Alias *

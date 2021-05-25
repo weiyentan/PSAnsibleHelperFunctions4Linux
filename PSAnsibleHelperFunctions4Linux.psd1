@@ -69,7 +69,14 @@ Description = 'Direct port of Ansible helper functions.'
 # NestedModules = @()
 
 # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
-FunctionsToExport = @()
+	FunctionsToExport = @(
+		'Exit-Json',
+		'Parse-Args',
+		'Get-AnsibleParam',
+		'Set-Attr',
+		'Fail-Json',
+		'Convertto-Bool'
+	)
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
 CmdletsToExport = @()
